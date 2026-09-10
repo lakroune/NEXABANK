@@ -1,6 +1,11 @@
 package models;
 
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+import java.util.Comparator;
 
 public class Compte {
     private String numCompte;
@@ -13,6 +18,19 @@ public class Compte {
         this.solde = solde;
         this.typeCompte = typeCompte;
         this.transactions = new HashSet<>();
+    }
+
+    public List<Transaction> getTransactions() {
+        List<Transaction> list = new ArrayList<>(transactions);
+        // Trier par id croissant (ordre d'insertion logique via ID auto-incrémenté)
+        Collections.sort(list, Comparator.comparingInt(Transaction::getIdTransaction));
+        return Collections.unmodifiableList(list);
+    }
+
+    public void addTransaction(Transaction t) {
+        if (t != null) {
+            this.transactions.add(t);
+        }
     }
 
     public String getNumCompte() {

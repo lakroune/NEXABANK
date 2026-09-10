@@ -1,14 +1,15 @@
-
 import java.util.InputMismatchException;
 import java.util.Scanner;
 
 import models.Compte;
 import models.Client;
+import models.Transaction;
 import serveces.CompteService;
 import serveces.clinetService;
 
 class Main {
     private static void afficherMenuPrincipal() {
+        afficherMenuClient();
         System.out.println("\n=====================================");
         System.out.println("            MENU PRINCIPAL");
         System.out.println("=====================================");
@@ -23,20 +24,12 @@ class Main {
         System.out.println("\n-------------------------------------");
         System.out.println("             MENU CLIENT");
         System.out.println("-------------------------------------");
-        System.out.println("1. Créer un nouveau compte");
-        System.out.println("2. Sélectionner/Changer de compte actif");
-        System.out.println("3. Consulter le solde du compte actif");
-        System.out.println("4. Afficher la liste de tous mes comptes");
-        System.out.println();
-        System.out.println("--- OPÉRATIONS FINANCIÈRES ---");
-        System.out.println("5. Effectuer un dépôt");
-        System.out.println("6. Effectuer un retrait");
-        System.out.println("7. Effectuer un virement vers un autre compte");
-        System.out.println();
-        System.out.println("--- SUIVI & HISTORIQUE ---");
-        System.out.println("8. Consulter le relevé bancaire (Historique)");
-        System.out.println("9. Exporter / Vérifier le fichier journal (.txt)");
-        System.out.println();
+        System.out.println("1. Consulter le solde du compte actif");
+        System.out.println("2. Afficher la liste de tous mes comptes");
+        System.out.println("3. Effectuer un dépôt");
+        System.out.println("4. Effectuer un retrait");
+        System.out.println("5. Effectuer un virement vers un autre compte");
+        System.out.println("6. Consulter le relevé bancaire (Historique)");
         System.out.println("--------------------------------------------------");
         System.out.println("0. Quitter l'application");
         System.out.println("-------------------------------------");
@@ -96,6 +89,7 @@ class Main {
         boolean running = true;
         CompteService compteService = new CompteService();
         clinetService clientService = new clinetService();
+
         while (running) {
             afficherMenuPrincipal();
             String input = scanner.nextLine().trim();
@@ -120,23 +114,32 @@ class Main {
                             case "0":
                                 clientMenu = false;
                                 break;
-                            case "1":
-                                System.out.println("\nEntrez les informations du compte :");
-                                System.out.print("Numéro de compte : ");
-                                String numCompte = scanner.nextLine().trim();
-                                System.out.print("Solde initial : ");
-                                double solde = lireSolde(scanner);
-                                scanner.nextLine();
-                                System.out.print("Type de compte : ");
-                                String typeCompte = scanner.nextLine();
-                                Compte compte = new Compte(numCompte, solde, typeCompte);
-                                if (compteService.ajouterCompte(compte, clientLogin.getIdClient())) {
-                                    System.out.println("Compte créé avec succès.");
+
+                            case "1": // consulter le solde
+                                System.out.print("Numéro du compte : ");
+                                String numCompteSolde = scanner.nextLine().trim();
+                                Compte compteSolde = trouverCompte(clientLogin, compteService, numCompteSolde);
+                                if (compteSolde == null) {
+                                    System.out.println("Compte introuvable.");
+                                    break;
+                                }
+                                System.out.println("Solde : " + compteSolde.getSolde());
+                                break;
+
+                            case "2": // afficher la liste de tous mes comptes
+                                System.out.println("--- Liste des comptes ---");
+                                if (clientLogin.getComptes().isEmpty()) {
+                                    System.out.println("Aucun compte trouvé.");
                                 } else {
-                                    System.out.println("Erreur : compte invalide ou déjà existant.");
+                                    for (Compte compte : clientLogin.getComptes().values()) {
+                                        System.out.print("-> Num compte : " + compte.getNumCompte());
+                                        System.out.print(" <*> Solde : " + compte.getSolde());
+                                        System.out.println();
+                                    }
                                 }
                                 break;
-                            case "5":
+
+                            case "3": // Effectuer un dépôt
                                 System.out.print("Numéro du compte : ");
                                 String numCompteDepot = scanner.nextLine().trim();
                                 Compte compteDepot = trouverCompte(clientLogin, compteService, numCompteDepot);
@@ -145,19 +148,21 @@ class Main {
                                     break;
                                 }
                                 try {
-                                    System.out.print("Montant du dépôt : ");
+                                    System.out.print("Montant du depot : ");
                                     double montantDepot = Double.parseDouble(scanner.nextLine().trim());
-                                    if (clientService.deposer(compteDepot, montantDepot)) {
-                                        System.out.println("Dépôt effectué avec succès.");
-                                        System.out.println("Nouveau solde : " + compteDepot.getSolde());
-                                    } else {
-                                        System.out.println("Montant invalide.");
-                                    }
+                                    clientService.deposer(compteDepot, montantDepot);
+                                    System.out.println("Depot effectué avec succès.");
+                                    System.out.println("Nouveau solde : " + compteDepot.getSolde());
                                 } catch (NumberFormatException e) {
                                     System.out.println("Montant invalide.");
+                                } catch (exception.MontantInvalideException | exception.CompteIntrouvableException e) {
+                                    System.out.println("Erreur : " + e.getMessage());
+                                } catch (Exception e) {
+                                    System.out.println("Erreur : " + e.getMessage());
                                 }
                                 break;
-                            case "6":
+
+                            case "4": // retrait
                                 System.out.print("Numéro du compte : ");
                                 String numCompteRetrait = scanner.nextLine().trim();
                                 Compte compteRetrait = trouverCompte(clientLogin, compteService, numCompteRetrait);
@@ -168,17 +173,20 @@ class Main {
                                 try {
                                     System.out.print("Montant du retrait : ");
                                     double montantRetrait = Double.parseDouble(scanner.nextLine().trim());
-                                    if (clientService.retrait(compteRetrait, montantRetrait)) {
-                                        System.out.println("Retrait effectué avec succès.");
-                                        System.out.println("Nouveau solde : " + compteRetrait.getSolde());
-                                    } else {
-                                        System.out.println("Retrait impossible : solde insuffisant ou montant invalide.");
-                                    }
+                                    clientService.retrait(compteRetrait, montantRetrait);
+                                    System.out.println("Retrait effectué avec succès.");
+                                    System.out.println("Nouveau solde : " + compteRetrait.getSolde());
                                 } catch (NumberFormatException e) {
                                     System.out.println("Montant invalide.");
+                                } catch (exception.SoldeInsuffisantException | exception.MontantInvalideException
+                                        | exception.CompteIntrouvableException e) {
+                                    System.out.println("Erreur : " + e.getMessage());
+                                } catch (Exception e) {
+                                    System.out.println("Erreur inattendue : " + e.getMessage());
                                 }
                                 break;
-                            case "7":
+
+                            case "5": // virement
                                 System.out.print("Compte source : ");
                                 String numCompteSource = scanner.nextLine().trim();
                                 System.out.print("Compte destination : ");
@@ -192,17 +200,41 @@ class Main {
                                 try {
                                     System.out.print("Montant du virement : ");
                                     double montantVirement = Double.parseDouble(scanner.nextLine().trim());
-                                    if (clientService.virement(compteSource, compteDestination, montantVirement)) {
-                                        System.out.println("Virement effectué avec succès.");
-                                        System.out.println("Nouveau solde source : " + compteSource.getSolde());
-                                        System.out.println("Nouveau solde destination : " + compteDestination.getSolde());
-                                    } else {
-                                        System.out.println("Virement impossible : solde insuffisant ou montant invalide.");
-                                    }
+                                    clientService.virement(compteSource, compteDestination, montantVirement);
+                                    System.out.println("Virement effectué avec succès.");
+                                    System.out.println("Nouveau solde source : " + compteSource.getSolde());
+                                    System.out.println("Nouveau solde destination : " + compteDestination.getSolde());
                                 } catch (NumberFormatException e) {
                                     System.out.println("Montant invalide.");
+                                } catch (exception.SoldeInsuffisantException | exception.MontantInvalideException
+                                        | exception.CompteIntrouvableException e) {
+                                    System.out.println("Erreur : " + e.getMessage());
+                                } catch (exception.CompteException e) {
+                                    System.out.println("Erreur compte : " + e.getMessage());
+                                } catch (Exception e) {
+                                    System.out.println("Erreur inattendue : " + e.getMessage());
                                 }
                                 break;
+
+                            case "6": // consulter historique
+                                System.out.print("Numéro du compte : ");
+                                String numCompteHistorique = scanner.nextLine().trim();
+                                Compte compteHist = trouverCompte(clientLogin, compteService, numCompteHistorique);
+                                if (compteHist == null) {
+                                    System.out.println("Compte introuvable.");
+                                    break;
+                                }
+                                if (compteHist.getTransactions().isEmpty()) {
+                                    System.out.println("Aucune transaction trouvée pour ce compte.");
+                                } else {
+                                    System.out.println("--- Historique des transactions ---");
+                                    for (Transaction t : compteHist.getTransactions()) {
+                                        System.out.println(t.getIdTransaction() + " | " + t.getType() + " | "
+                                                + t.getMontant() + " | " + t.getDate());
+                                    }
+                                }
+                                break;
+
                             default:
                                 System.out.println("Choix invalide.");
                                 break;
@@ -286,12 +318,11 @@ class Main {
                                 idClient = Integer.parseInt(scanner.nextLine().trim());
                                 System.out.print("Numéro de compte : ");
                                 String numCompte = scanner.nextLine();
-                                double solde = lireSolde(scanner);
-                                scanner.nextLine();
-                                System.out.print("Type de compte : ");
-                                String typeCompte = scanner.nextLine();
 
-                                Compte compte = new Compte(numCompte, solde, typeCompte);
+                                System.out.print("Type de compte : ");
+                                String typeCompte2 = scanner.nextLine();
+
+                                Compte compte = new Compte(numCompte, 0, typeCompte2);
                                 if (compteService.ajouterCompte(compte, idClient)) {
                                     System.out.println("Compte ajouté avec succès.");
                                 } else {

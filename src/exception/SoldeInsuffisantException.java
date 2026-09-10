@@ -5,3 +5,4 @@ public class SoldeInsuffisantException extends CompteException {
         super(message);
     }
 }
+ 

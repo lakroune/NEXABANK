@@ -1,7 +1,11 @@
 package models;
 
+import java.util.concurrent.atomic.AtomicInteger;
+
 public class Transaction {
-    private  int idTransaction;
+    private static final AtomicInteger ID_GENERATOR = new AtomicInteger(0);
+
+    private int idTransaction;
     private String type;
     private double montant;
     private String date;
@@ -11,6 +15,16 @@ public class Transaction {
     public Transaction(int idTransaction, String type, double montant, String date, Compte idCompteSource,
             Compte idCompteDestination) {
         this.idTransaction = idTransaction;
+        this.type = type;
+        this.montant = montant;
+        this.date = date;
+        this.idCompteSource = idCompteSource;
+        this.idCompteDestination = idCompteDestination;
+    }
+
+    public Transaction(String type, double montant, String date, Compte idCompteSource,
+            Compte idCompteDestination) {
+        this.idTransaction = ID_GENERATOR.incrementAndGet();
         this.type = type;
         this.montant = montant;
         this.date = date;

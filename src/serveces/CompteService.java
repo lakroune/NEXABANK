@@ -10,6 +10,11 @@ import exception.CompteIntrouvableException;
 import exception.ParametreInvalideException;
 import models.Client;
 import models.Compte;
+import java.io.BufferedWriter;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.util.List;
+import models.Transaction;
 
 public class CompteService {
 
@@ -151,6 +156,37 @@ public class CompteService {
             System.out.println("typeCompte : " + compte.getTypeCompte());
         } catch (Exception e) {
             System.out.println("Erreur : " + e.getMessage());
+        }
+    }
+
+    public void exporterReleve(String numCompte, int idClient, String filepath) throws Exception, IOException {
+        if (numCompte == null || numCompte.trim().isEmpty()) {
+            throw new ParametreInvalideException("Numéro de compte invalide.");
+        }
+        if (!this.clientsArray.containsKey(idClient)) {
+            throw new ClientIntrouvableException("Client introuvable.");
+        }
+        if (!this.clientsArray.get(idClient).getComptes().containsKey(numCompte)) {
+            throw new CompteIntrouvableException("Compte introuvable.");
+        }
+
+        Client client = this.clientsArray.get(idClient);
+        Compte compte = client.getComptes().get(numCompte);
+        List<Transaction> txs = compte.getTransactions();
+
+        try (BufferedWriter writer = new BufferedWriter(new FileWriter(filepath))) {
+            writer.write("Relevé de compte - "+ compte.getNumCompte());
+            writer.newLine();
+            writer.write("Client: " + client.getNom());
+            writer.newLine();
+            writer.write("Solde: " + compte.getSolde());
+            writer.newLine();
+            writer.write("--- Transactions ---");
+            writer.newLine();
+            for (Transaction t : txs) {
+                writer.write(t.getIdTransaction() + "," + t.getType() + "," + t.getMontant() + "," + t.getDate());
+                writer.newLine();
+            }
         }
     }
 
