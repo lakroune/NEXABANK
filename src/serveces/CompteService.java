@@ -11,6 +11,7 @@ import exception.ParametreInvalideException;
 import models.Client;
 import models.Compte;
 import java.io.BufferedWriter;
+import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.util.List;
@@ -135,6 +136,40 @@ public class CompteService {
         }
     }
 
+    private String formaterDate(String date) {
+        if (date == null || date.trim().isEmpty()) {
+            return "";
+        }
+        return date.contains("T") ? date.split("T")[0] : date;
+    }
+
+    private String formaterMontant(double montant) {
+        return String.format("%.0f €", montant);
+    }
+
+    private String construireContenuReleve(Client client, Compte compte) {
+        StringBuilder contenu = new StringBuilder();
+        contenu.append("Date").append(" | ").append("Type").append(" | ").append("Montant").append(" | ")
+                .append("Compte Source").append(" | ").append("Compte Destination").append(System.lineSeparator());
+
+        List<Transaction> txs = compte.getTransactions();
+        for (Transaction t : txs) {
+            String date = formaterDate(t.getDate());
+            String type = t.getType() == null ? "" : t.getType();
+            String montant = formaterMontant(t.getMontant());
+            String source = t.getIdCompteSource() != null ? t.getIdCompteSource().getNumCompte() : "null";
+            String destination = t.getIdCompteDestination() != null ? t.getIdCompteDestination().getNumCompte() : "null";
+
+            contenu.append(date).append(" | ")
+                    .append(type).append(" | ")
+                    .append(montant).append(" | ")
+                    .append(source).append(" | ")
+                    .append(destination).append(System.lineSeparator());
+        }
+
+        return contenu.toString();
+    }
+
     public void consulterReleve(String numCompte, int idClient) {
         try {
             if (numCompte == null || numCompte.trim().isEmpty()) {
@@ -150,10 +185,11 @@ public class CompteService {
             Client client = this.clientsArray.get(idClient);
             Compte compte = client.getComptes().get(numCompte);
             System.out.println("--- Relevé de compte ---");
-            System.out.println("nom : " + client.getNom());
-            System.out.println("solde : " + compte.getSolde());
-            System.out.println("numCompte : " + compte.getNumCompte());
-            System.out.println("typeCompte : " + compte.getTypeCompte());
+            System.out.println("Client : " + client.getNom() + " " + client.getPrenom());
+            System.out.println("Compte : " + compte.getNumCompte());
+            System.out.println("Type : " + compte.getTypeCompte());
+            System.out.println("Solde : " + compte.getSolde());
+            System.out.println(construireContenuReleve(client, compte));
         } catch (Exception e) {
             System.out.println("Erreur : " + e.getMessage());
         }
@@ -172,22 +208,34 @@ public class CompteService {
 
         Client client = this.clientsArray.get(idClient);
         Compte compte = client.getComptes().get(numCompte);
-        List<Transaction> txs = compte.getTransactions();
-
-        try (BufferedWriter writer = new BufferedWriter(new FileWriter(filepath))) {
-            writer.write("Relevé de compte - "+ compte.getNumCompte());
-            writer.newLine();
-            writer.write("Client: " + client.getNom());
-            writer.newLine();
-            writer.write("Solde: " + compte.getSolde());
-            writer.newLine();
-            writer.write("--- Transactions ---");
-            writer.newLine();
-            for (Transaction t : txs) {
-                writer.write(t.getIdTransaction() + "," + t.getType() + "," + t.getMontant() + "," + t.getDate());
-                writer.newLine();
-            }
+        File file = new File(filepath);
+        if (file.getParentFile() != null) {
+            file.getParentFile().mkdirs();
         }
+
+        try (BufferedWriter writer = new BufferedWriter(new FileWriter(file))) {
+            writer.write(construireContenuReleve(client, compte));
+        }
+    }
+
+    public String exporterReleveParCompte(String numCompte, int idClient) throws Exception, IOException {
+        if (numCompte == null || numCompte.trim().isEmpty()) {
+            throw new ParametreInvalideException("Numéro de compte invalide.");
+        }
+        if (!this.clientsArray.containsKey(idClient)) {
+            throw new ClientIntrouvableException("Client introuvable.");
+        }
+        if (!this.clientsArray.get(idClient).getComptes().containsKey(numCompte)) {
+            throw new CompteIntrouvableException("Compte introuvable.");
+        }
+
+        String dossier = "releves";
+        File dir = new File(dossier);
+        dir.mkdirs();
+
+        String path = dossier + File.separator + "releve_" + numCompte.trim() + ".txt";
+        exporterReleve(numCompte, idClient, path);
+        return path;
     }
 
     public void listerComptes() {

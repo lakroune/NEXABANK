@@ -43,7 +43,6 @@ class Main {
         System.out.println("1. Ajouter un client");
         System.out.println("2. Modifier un client");
         System.out.println("3. Afficher la liste des clients");
-        System.out.println("-------------------------------------");
         System.out.println("4. Créer un compte");
         System.out.println("5. Supprimer un compte");
         System.out.println("6. Consulter un relevé");
@@ -91,6 +90,7 @@ class Main {
         clinetService clientService = new clinetService();
 
         while (running) {
+
             afficherMenuPrincipal();
             String input = scanner.nextLine().trim();
 
@@ -108,6 +108,7 @@ class Main {
                         break;
                     }
                     while (clientMenu) {
+
                         afficherMenuClient();
                         String c = scanner.nextLine().trim();
                         switch (c) {
@@ -245,6 +246,7 @@ class Main {
                 case "2":
                     boolean gestionMenu = true;
                     while (gestionMenu) {
+
                         afficherMenuGestionnaire();
                         String g = scanner.nextLine().trim();
 
@@ -291,6 +293,7 @@ class Main {
                                     System.out.println("ID invalide. Opération annulée.");
                                     break;
                                 }
+
                                 System.out.print("Nouveau nom : ");
                                 String newNom = scanner.nextLine();
                                 System.out.print("Nouveau prénom : ");
